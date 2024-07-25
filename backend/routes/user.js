@@ -183,8 +183,8 @@ router.post("/transfer" , auth , async(req,res)=>{
 
     try {
         const senderAccount = await Account.findOne({userId : req.userId}).session(session);
-
-        const receiverAccount = await Account.findOne({userId : mongoose.Schema.Types.ObjectId(toId)}).session(session);
+      
+        const receiverAccount = await Account.findOne({userId : toId}).session(session);
 
         if(!receiverAccount) {
             await session.abortTransaction();
@@ -210,12 +210,14 @@ router.post("/transfer" , auth , async(req,res)=>{
 
         session.commitTransaction()
         res.status(200).json({message : "Transfer successful."})
+
+        
     } catch (error) {
-        session.abortTransaction()
+        await session.abortTransaction();
+        return res.status(411).json({message : "Error while transfering."})
     }
-    finally {
-        session.endSession()
-    }
+    
+      
 })
 
 module.exports = router;
