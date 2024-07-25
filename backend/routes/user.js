@@ -1,16 +1,17 @@
 const express = require("express");
 const zod = require("zod");
-const User = require("../db/db");
+const {User,Account} = require("../db/db");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const auth = require("../auth/auth");
+const { default: mongoose } = require("mongoose");
 
 const router = express.Router();
 
 router.post("/signup" , async (req,res)=> {
 
     const user = req.body;
-    console.log(user)
+
     const userValidationSchema = zod.object({
         username : zod.string().min(3).max(40).email(),
         firstname : zod.string().min(3).max(40),
@@ -29,6 +30,8 @@ router.post("/signup" , async (req,res)=> {
     
     if(!findUser) {
         const newUser = await User.create(parsedInput.data);
+        const randomBalance = (Math.random()*10000) +1;
+        await Account.create({userId : newUser._id , balance : randomBalance})
         const token =  jwt.sign({userId : newUser._id} , process.env.PAYTM_SECRET);
 
         return res.status(200).json({"message" : "User successfully created" , token});
@@ -135,7 +138,7 @@ router.put("/", auth, async (req, res) => {
 
 router.get("/bulk" ,auth, async(req,res)=> {
     
-    const {filter} = req.query;
+    const filter = req.query.filter || "";
     try {
         const findUsers = await  User.find({
             $or : [
@@ -165,6 +168,53 @@ router.get("/bulk" ,auth, async(req,res)=> {
         res.status(200).json({users : result})
     } catch (error) {
         throw new Error(error.message)
+    }
+})
+
+
+
+router.post("/transfer" , auth , async(req,res)=>{
+
+    const session = await mongoose.startSession();
+
+    const {amount , toId} = req.body;
+
+    session.startTransaction();
+
+    try {
+        const senderAccount = await Account.findOne({userId : req.userId}).session(session);
+
+        const receiverAccount = await Account.findOne({userId : mongoose.Schema.Types.ObjectId(toId)}).session(session);
+
+        if(!receiverAccount) {
+            await session.abortTransaction();
+            return res.status(411).json({message : "Account not found"});
+        }
+
+        if(senderAccount.balance < amount) {
+            await session.abortTransaction();
+            return res.status(411).json({message : "Insufficient balance."})
+        }
+
+        await Account.updateOne({userId : req.userId} , {
+            $inc : {
+                balance : -amount
+            }
+        }).session(session)
+
+        await Account.updateOne({userId : receiverAccount.userId} , {
+            $inc : {
+                balance : amount
+            }
+        }).session(session)
+
+        session.commitTransaction()
+        res.status(200).json({message : "Transfer successful."})
+    } catch (error) {
+        session.abortTransaction()
+    }
+    finally {
+        session.endSession()
     }
 })
 
