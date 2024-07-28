@@ -4,7 +4,7 @@ import Navbar from "../Component/Navbar/Navbar";
 
 function Layout() {
   return (
-    <div className="bg-background h-screen font-mono">
+    <div className="flex flex-col justify-start h-screen font-mono">
         <nav>
             <Navbar/>
         </nav>
