@@ -4,12 +4,12 @@ import Navbar from "../Component/Navbar/Navbar";
 
 function Layout() {
   return (
-    <div className="flex flex-col justify-start h-screen font-mono">
+    <div className="flex flex-col w-screen justify-start h-screen font-mono">
         <nav>
             <Navbar/>
         </nav>
         <main>
-            <Outlet/>
+            <div  className="h-[90vh] w-screen"><Outlet/></div>
         </main>
     </div>
   )
