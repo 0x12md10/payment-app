@@ -3,16 +3,19 @@ import Layout from "./Layout/Layout";
 import SignupPage from "./Pages/SignupPage";
 import SigninPage from "./Pages/SigninPage";
 import Dashboard from "./Pages/Dashboard";
+import { useRecoilValue } from "recoil";
+import { authTokenAtom } from "./Store/atoms/authAtom";
 
 function App() {
 
-  const token = localStorage.getItem("token");
+  const authToken = useRecoilValue(authTokenAtom);
+
 
   return (
     <>
       <Routes>
         <Route path="/" element={<Layout/>}> 
-          <Route index element={token ? <Dashboard/> :<SignupPage />} ></Route>
+          <Route index element={authToken ? <Dashboard/> :<SignupPage />} ></Route>
           <Route path="signup" element={<SignupPage/>}/>
           <Route path="signin" element={<SigninPage/>}/>
         </Route>
